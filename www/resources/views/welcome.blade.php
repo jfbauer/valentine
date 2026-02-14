@@ -11,6 +11,29 @@
     <style>
         * { font-family: 'Comic Neue', cursive; }
 
+        /* Mobile scaling - make everything smaller on narrow screens */
+        :root {
+            --game-scale: 1;
+            --floor-height: 80px;
+            --viktor-size: 1;
+        }
+
+        @media (max-width: 500px) {
+            :root {
+                --game-scale: 0.7;
+                --floor-height: 56px;
+                --viktor-size: 0.7;
+            }
+        }
+
+        @media (max-width: 400px) {
+            :root {
+                --game-scale: 0.6;
+                --floor-height: 48px;
+                --viktor-size: 0.6;
+            }
+        }
+
         .game-area {
             background: linear-gradient(180deg, #87CEEB 0%, #98D8C8 100%);
             position: relative;
@@ -22,7 +45,7 @@
             bottom: 0;
             left: 0;
             right: 0;
-            height: 80px;
+            height: var(--floor-height);
             background: linear-gradient(180deg, #8B4513 0%, #654321 100%);
         }
 
@@ -32,15 +55,15 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 15px;
+            height: calc(15px * var(--game-scale));
             background: linear-gradient(180deg, #DEB887 0%, #8B4513 100%);
         }
 
         .rocking-chair {
             position: absolute;
-            bottom: 80px;
-            width: 120px;
-            height: 100px;
+            bottom: var(--floor-height);
+            width: calc(120px * var(--game-scale));
+            height: calc(100px * var(--game-scale));
         }
 
         .viktor {
@@ -49,32 +72,48 @@
             transition: transform 0.1s;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
+            transform-origin: bottom center;
+        }
+
+        /* Landscape suggestion overlay */
+        .rotate-suggestion {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 100;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        @media (max-width: 600px) and (orientation: portrait) {
+            .rotate-suggestion {
+                display: flex;
+            }
+        }
+
+        .rotate-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            animation: wiggle 1.5s infinite;
+        }
+
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(-15deg); }
+            50% { transform: rotate(15deg); }
         }
 
         .viktor:active {
-            transform: scale(0.95);
-        }
-
-        .viktor.crouching {
-            transform: scaleY(0.5) translateY(50%);
-        }
-
-        .viktor.stomping {
-            animation: stomp 0.2s infinite;
+            filter: brightness(0.9);
         }
 
         @keyframes stomp {
             0%, 100% { transform: translateY(0) rotate(-2deg); }
             50% { transform: translateY(-5px) rotate(2deg); }
-        }
-
-        .viktor.crouching.stomping {
-            animation: stomp-crouch 0.2s infinite;
-        }
-
-        @keyframes stomp-crouch {
-            0%, 100% { transform: scaleY(0.5) translateY(50%) rotate(-2deg); }
-            50% { transform: scaleY(0.5) translateY(45%) rotate(2deg); }
         }
 
         .catch-effect {
@@ -129,6 +168,16 @@
     </style>
 </head>
 <body class="min-h-screen bg-pink-100">
+    {{-- Rotate phone suggestion for portrait mobile --}}
+    <div class="rotate-suggestion" id="rotateOverlay">
+        <div class="rotate-icon">📱</div>
+        <h2 class="text-2xl font-bold mb-2">Draai je telefoon!</h2>
+        <p class="text-lg mb-6 opacity-80">Het spel werkt beter in landscape modus</p>
+        <button onclick="document.getElementById('rotateOverlay').style.display='none'" class="bg-white text-gray-800 px-6 py-2 rounded-full font-bold">
+            Toch spelen →
+        </button>
+    </div>
+
     <div x-data="pantsQuest()" x-init="init()" class="min-h-screen flex flex-col">
 
         {{-- Start Screen --}}
@@ -203,11 +252,14 @@
                 {{-- Viktor --}}
                 <div
                     class="viktor"
-                    :class="{ 'crouching': isCrouching, 'stomping': isMoving && !isJumping, 'catch-effect': justCaught }"
-                    :style="`left: ${viktorX}px; bottom: ${80 + viktorY}px; transition: bottom ${isJumping ? '0.15s' : '0.05s'} ease-out;`"
+                    :class="{ 'catch-effect': justCaught }"
+                    :style="`left: ${viktorX}px; bottom: ${getFloorHeight() + viktorY}px; transition: bottom ${isJumping ? '0.15s' : '0.05s'} ease-out; transform: scale(${getScale()});`"
                     @click.stop="catchViktor()"
                 >
-                    <svg :class="isCrouching ? 'w-16 h-16' : 'w-20 h-24'" viewBox="0 0 100 120">
+                    <svg
+                        :class="isCrouching ? 'w-16 h-16' : 'w-20 h-24'"
+                        :style="isCrouching ? 'transform: scaleY(0.6);' : (isMoving && !isJumping ? 'animation: stomp 0.2s infinite;' : '')"
+                        viewBox="0 0 100 120"
                         {{-- Viktor with current clothing --}}
 
                         {{-- Head --}}
@@ -411,15 +463,34 @@
                     { name: '👟 Schoenen', emoji: '👟' }
                 ],
 
+                getScale() {
+                    const width = window.innerWidth;
+                    if (width <= 400) return 0.6;
+                    if (width <= 500) return 0.7;
+                    return 1;
+                },
+
+                getFloorHeight() {
+                    return 80 * this.getScale();
+                },
+
+                getViktorWidth() {
+                    return 80 * this.getScale();
+                },
+
                 init() {
                     this.chairPosition = window.innerWidth * 0.3;
+                    // Update on resize
+                    window.addEventListener('resize', () => {
+                        this.chairPosition = window.innerWidth * 0.3;
+                    });
                 },
 
                 startGame() {
                     this.gameState = 'playing';
                     this.currentLevel = 1;
                     this.timer = 0;
-                    this.viktorX = window.innerWidth / 2 - 40;
+                    this.viktorX = window.innerWidth / 2 - (this.getViktorWidth() / 2);
 
                     this.timerInterval = setInterval(() => {
                         this.timer += 0.1;
@@ -430,6 +501,7 @@
 
                 startViktorBehavior() {
                     const gameWidth = window.innerWidth;
+                    const viktorWidth = this.getViktorWidth();
                     // Speed ramps up quicker: 4, 7, 10, 13, 16
                     const speed = 1 + (this.currentLevel * 3);
 
@@ -439,8 +511,8 @@
 
                         this.viktorX += this.viktorDirection * speed;
 
-                        // Bounce off walls
-                        if (this.viktorX > gameWidth - 100) {
+                        // Bounce off walls (use scaled viktor width)
+                        if (this.viktorX > gameWidth - viktorWidth - 20) {
                             this.viktorDirection = -1;
                         } else if (this.viktorX < 20) {
                             this.viktorDirection = 1;
@@ -566,7 +638,7 @@
                     this.finalTime = 0;
 
                     // Reset Viktor state
-                    this.viktorX = window.innerWidth / 2 - 40;
+                    this.viktorX = window.innerWidth / 2 - (this.getViktorWidth() / 2);
                     this.viktorY = 0;
                     this.viktorDirection = 1;
                     this.isCrouching = false;
