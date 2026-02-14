@@ -1,43 +1,67 @@
 <!DOCTYPE html>
-<html lang="nl">
+<html lang="nl" class="overflow-hidden">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
     <title>Pants Quest - Viktor Aankleden!</title>
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=comic-neue:400,700&display=swap" rel="stylesheet" />
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
-        * { font-family: 'Comic Neue', cursive; }
+        * {
+            font-family: 'Comic Neue', cursive;
+            box-sizing: border-box;
+        }
 
-        /* Mobile scaling - make everything smaller on narrow screens */
+        html, body {
+            height: 100dvh;
+            max-height: 100dvh;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+            touch-action: manipulation;
+            overscroll-behavior: none;
+        }
+
+        /* Landscape mobile scaling */
         :root {
-            --game-scale: 1;
-            --floor-height: 80px;
-            --viktor-size: 1;
+            --floor-height: 50px;
+            --viktor-scale: 0.65;
+            --chair-scale: 0.6;
         }
 
-        @media (max-width: 500px) {
+        /* Taller screens can have bigger elements */
+        @media (min-height: 400px) {
             :root {
-                --game-scale: 0.7;
-                --floor-height: 56px;
-                --viktor-size: 0.7;
+                --floor-height: 60px;
+                --viktor-scale: 0.75;
+                --chair-scale: 0.7;
             }
         }
 
-        @media (max-width: 400px) {
+        @media (min-height: 500px) {
             :root {
-                --game-scale: 0.6;
-                --floor-height: 48px;
-                --viktor-size: 0.6;
+                --floor-height: 70px;
+                --viktor-scale: 0.85;
+                --chair-scale: 0.8;
             }
+        }
+
+        .game-container {
+            height: 100dvh;
+            max-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
 
         .game-area {
             background: linear-gradient(180deg, #87CEEB 0%, #98D8C8 100%);
             position: relative;
             overflow: hidden;
+            flex: 1;
+            touch-action: manipulation;
         }
 
         .floor {
@@ -55,56 +79,23 @@
             top: 0;
             left: 0;
             right: 0;
-            height: calc(15px * var(--game-scale));
+            height: 10px;
             background: linear-gradient(180deg, #DEB887 0%, #8B4513 100%);
         }
 
         .rocking-chair {
             position: absolute;
             bottom: var(--floor-height);
-            width: calc(120px * var(--game-scale));
-            height: calc(100px * var(--game-scale));
+            width: calc(120px * var(--chair-scale));
+            height: calc(100px * var(--chair-scale));
         }
 
         .viktor {
             position: absolute;
             cursor: pointer;
-            transition: transform 0.1s;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
             transform-origin: bottom center;
-        }
-
-        /* Landscape suggestion overlay */
-        .rotate-suggestion {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.85);
-            z-index: 100;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            text-align: center;
-            padding: 2rem;
-        }
-
-        @media (max-width: 600px) and (orientation: portrait) {
-            .rotate-suggestion {
-                display: flex;
-            }
-        }
-
-        .rotate-icon {
-            font-size: 4rem;
-            margin-bottom: 1rem;
-            animation: wiggle 1.5s infinite;
-        }
-
-        @keyframes wiggle {
-            0%, 100% { transform: rotate(-15deg); }
-            50% { transform: rotate(15deg); }
         }
 
         .viktor:active {
@@ -138,7 +129,7 @@
 
         .heart {
             position: absolute;
-            font-size: 2rem;
+            font-size: 1.5rem;
             animation: float-up 4s ease-in infinite;
         }
 
@@ -158,38 +149,55 @@
         }
 
         .message-card {
-            animation: fade-in-up 1s ease-out;
+            animation: fade-in-up 0.5s ease-out;
         }
 
         @keyframes fade-in-up {
-            0% { opacity: 0; transform: translateY(30px); }
+            0% { opacity: 0; transform: translateY(20px); }
             100% { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Compact header for landscape */
+        .game-header {
+            background: rgba(255,255,255,0.9);
+            padding: 6px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .game-header .progress-bar {
+            flex: 1;
+            max-width: 200px;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .game-header .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #f472b6, #ef4444);
+            transition: width 0.3s;
         }
     </style>
 </head>
-<body class="min-h-screen bg-pink-100">
-    {{-- Rotate phone suggestion for portrait mobile --}}
-    <div class="rotate-suggestion" id="rotateOverlay">
-        <div class="rotate-icon">📱</div>
-        <h2 class="text-2xl font-bold mb-2">Draai je telefoon!</h2>
-        <p class="text-lg mb-6 opacity-80">Het spel werkt beter in landscape modus</p>
-        <button onclick="document.getElementById('rotateOverlay').style.display='none'" class="bg-white text-gray-800 px-6 py-2 rounded-full font-bold">
-            Toch spelen →
-        </button>
-    </div>
-
-    <div x-data="pantsQuest()" x-init="init()" class="min-h-screen flex flex-col">
+<body class="bg-pink-100">
+    <div x-data="pantsQuest()" x-init="init()" class="game-container">
 
         {{-- Start Screen --}}
-        <div x-show="gameState === 'start'" x-cloak class="min-h-screen flex flex-col items-center justify-center p-6 bg-gradient-to-b from-pink-200 to-red-200">
+        <div x-show="gameState === 'start'" x-cloak
+             class="h-[100dvh] flex flex-col items-center justify-center p-4 bg-gradient-to-b from-pink-200 to-red-200">
             <div class="text-center">
-                <h1 class="text-5xl md:text-7xl font-bold text-red-600 mb-4">👖 Pants Quest</h1>
-                <p class="text-2xl md:text-3xl text-red-500 mb-2">Viktor Aankleden!</p>
-                <p class="text-lg text-red-400 mb-8">Tik op Viktor om hem aan te kleden</p>
+                <h1 class="text-4xl sm:text-5xl font-bold text-red-600 mb-2">👖 Pants Quest</h1>
+                <p class="text-xl sm:text-2xl text-red-500 mb-1">Viktor Aankleden!</p>
+                <p class="text-sm text-red-400 mb-4">Tik op Viktor om hem aan te kleden</p>
 
-                <div class="mb-8">
-                    <svg class="w-32 h-32 mx-auto" viewBox="0 0 100 100">
-                        {{-- Naked Viktor for start screen --}}
+                <div class="mb-4">
+                    <svg class="w-20 h-20 sm:w-24 sm:h-24 mx-auto" viewBox="0 0 100 100">
                         <circle cx="50" cy="30" r="20" fill="#FFE4C4" stroke="#8B4513" stroke-width="2"/>
                         <circle cx="43" cy="26" r="3" fill="#4A4A4A"/>
                         <circle cx="57" cy="26" r="3" fill="#4A4A4A"/>
@@ -205,7 +213,7 @@
 
                 <button
                     @click="startGame()"
-                    class="bg-red-500 hover:bg-red-600 text-white text-2xl font-bold py-4 px-12 rounded-full shadow-lg transform hover:scale-105 transition-all"
+                    class="bg-red-500 hover:bg-red-600 text-white text-xl font-bold py-3 px-10 rounded-full shadow-lg transform hover:scale-105 transition-all"
                 >
                     🎮 Start!
                 </button>
@@ -213,31 +221,26 @@
         </div>
 
         {{-- Game Screen --}}
-        <div x-show="gameState === 'playing'" x-cloak class="flex-1 flex flex-col">
-            {{-- Header --}}
-            <div class="bg-white/80 backdrop-blur p-4 shadow-md">
-                <div class="max-w-lg mx-auto flex justify-between items-center">
-                    <div class="text-lg font-bold text-gray-700">
-                        Level <span x-text="currentLevel"></span>/5
-                    </div>
-                    <div class="text-xl font-bold text-red-500" x-text="clothingItems[currentLevel - 1]?.name || ''"></div>
-                    <div class="text-lg text-gray-600">
-                        ⏱️ <span x-text="Math.floor(timer)"></span>s
-                    </div>
+        <div x-show="gameState === 'playing'" x-cloak class="h-[100dvh] flex flex-col overflow-hidden">
+            {{-- Compact Header --}}
+            <div class="game-header">
+                <div class="font-bold text-gray-700">
+                    Lvl <span x-text="currentLevel"></span>/5
                 </div>
-                {{-- Progress bar --}}
-                <div class="max-w-lg mx-auto mt-2">
-                    <div class="h-3 bg-gray-200 rounded-full overflow-hidden">
-                        <div class="h-full bg-gradient-to-r from-pink-400 to-red-500 transition-all duration-300" :style="`width: ${(currentLevel - 1) * 20}%`"></div>
-                    </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" :style="`width: ${(currentLevel - 1) * 20}%`"></div>
+                </div>
+                <div class="font-bold text-red-500" x-text="clothingItems[currentLevel - 1]?.emoji || ''"></div>
+                <div class="text-gray-600">
+                    ⏱️ <span x-text="Math.floor(timer)"></span>s
                 </div>
             </div>
 
             {{-- Game Area --}}
-            <div class="flex-1 game-area relative" @click="handleMiss($event)">
+            <div class="game-area" @click="handleMiss($event)">
                 <div class="floor"></div>
 
-                {{-- Rocking Chair (hiding spot) --}}
+                {{-- Rocking Chair --}}
                 <div class="rocking-chair" :style="`left: ${chairPosition}px`">
                     <svg viewBox="0 0 120 100" class="w-full h-full">
                         <ellipse cx="60" cy="95" rx="55" ry="8" fill="#654321"/>
@@ -253,175 +256,126 @@
                 <div
                     class="viktor"
                     :class="{ 'catch-effect': justCaught }"
-                    :style="`left: ${viktorX}px; bottom: ${getFloorHeight() + viktorY}px; transition: bottom ${isJumping ? '0.15s' : '0.05s'} ease-out; transform: scale(${getScale()});`"
+                    :style="`left: ${viktorX}px; bottom: ${getFloorHeight() + viktorY}px; transition: bottom ${isJumping ? '0.15s' : '0.05s'} ease-out; transform: scale(${getViktorScale()});`"
                     @click.stop="catchViktor()"
                 >
                     <svg
-                        :class="isCrouching ? 'w-16 h-16' : 'w-20 h-24'"
+                        class="w-20 h-24"
                         :style="isCrouching ? 'transform: scaleY(0.6);' : (isMoving && !isJumping ? 'animation: stomp 0.2s infinite;' : '')"
-                        viewBox="0 0 100 120"
-                        {{-- Viktor with current clothing --}}
+                        viewBox="0 0 100 120">
 
                         {{-- Head --}}
                         <circle cx="50" cy="25" r="20" fill="#FFE4C4" stroke="#8B4513" stroke-width="2"/>
-
                         {{-- Hair --}}
                         <path d="M 32 12 Q 50 0 68 12" stroke="#8B4513" stroke-width="10" fill="none" stroke-linecap="round"/>
-
-                        {{-- Eyes (open when not crouching) --}}
+                        {{-- Eyes --}}
                         <g x-show="!isCrouching">
                             <circle cx="42" cy="22" r="4" fill="#4A4A4A"/>
                             <circle cx="58" cy="22" r="4" fill="#4A4A4A"/>
                             <circle cx="43" cy="21" r="1.5" fill="white"/>
                             <circle cx="59" cy="21" r="1.5" fill="white"/>
                         </g>
-                        {{-- Eyes (squinting when crouching) --}}
                         <g x-show="isCrouching">
                             <path d="M 38 22 L 46 22" stroke="#4A4A4A" stroke-width="2" stroke-linecap="round"/>
                             <path d="M 54 22 L 62 22" stroke="#4A4A4A" stroke-width="2" stroke-linecap="round"/>
                         </g>
-
                         {{-- Smile --}}
                         <path d="M 42 32 Q 50 40 58 32" stroke="#4A4A4A" stroke-width="2" fill="none"/>
-
                         {{-- Blush --}}
                         <circle cx="35" cy="30" r="4" fill="#FFB6C1" opacity="0.6"/>
                         <circle cx="65" cy="30" r="4" fill="#FFB6C1" opacity="0.6"/>
-
                         {{-- Body --}}
                         <rect x="38" y="43" width="24" height="35" rx="8" fill="#FFE4C4" stroke="#8B4513" stroke-width="2"/>
-
                         {{-- Arms --}}
                         <rect x="28" y="48" width="12" height="25" rx="4" fill="#FFE4C4" stroke="#8B4513" stroke-width="2"/>
                         <rect x="60" y="48" width="12" height="25" rx="4" fill="#FFE4C4" stroke="#8B4513" stroke-width="2"/>
-
                         {{-- Legs --}}
                         <rect x="40" y="75" width="9" height="25" rx="4" fill="#FFE4C4" stroke="#8B4513" stroke-width="2"/>
                         <rect x="51" y="75" width="9" height="25" rx="4" fill="#FFE4C4" stroke="#8B4513" stroke-width="2"/>
 
-                        {{-- Clothing layers based on progress --}}
-
-                        {{-- Diaper (level 1 complete) --}}
+                        {{-- Clothing layers --}}
                         <g x-show="currentLevel > 1">
-                            <rect x="36" y="65" width="28" height="15" rx="5" fill="white" stroke="#E0E0E0" stroke-width="1" class="clothing-item"/>
+                            <rect x="36" y="65" width="28" height="15" rx="5" fill="white" stroke="#E0E0E0" stroke-width="1"/>
                         </g>
-
-                        {{-- Pants (level 2 complete) --}}
-                        <g x-show="currentLevel > 2" class="clothing-item">
+                        <g x-show="currentLevel > 2">
                             <rect x="38" y="68" width="24" height="18" rx="3" fill="#4169E1"/>
                             <rect x="40" y="82" width="9" height="18" rx="3" fill="#4169E1"/>
                             <rect x="51" y="82" width="9" height="18" rx="3" fill="#4169E1"/>
                         </g>
-
-                        {{-- Shirt (level 3 complete) --}}
-                        <g x-show="currentLevel > 3" class="clothing-item">
+                        <g x-show="currentLevel > 3">
                             <rect x="36" y="43" width="28" height="28" rx="5" fill="#FF6347"/>
                             <rect x="28" y="48" width="12" height="20" rx="4" fill="#FF6347"/>
                             <rect x="60" y="48" width="12" height="20" rx="4" fill="#FF6347"/>
-                            <text x="50" y="62" text-anchor="middle" fill="white" font-size="10" font-weight="bold">❤️</text>
+                            <text x="50" y="62" text-anchor="middle" fill="white" font-size="10">❤️</text>
                         </g>
-
-                        {{-- Socks (level 4 complete) --}}
-                        <g x-show="currentLevel > 4" class="clothing-item">
+                        <g x-show="currentLevel > 4">
                             <rect x="39" y="92" width="11" height="10" rx="3" fill="#FFD700"/>
                             <rect x="50" y="92" width="11" height="10" rx="3" fill="#FFD700"/>
                         </g>
-
-                        {{-- Shoes (level 5 complete - won't show during game) --}}
                     </svg>
                 </div>
 
                 {{-- Catch feedback --}}
-                <div
-                    x-show="showCatchText"
-                    x-transition
-                    class="absolute top-1/4 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center"
-                >
-                    <div class="text-4xl font-bold text-green-500 drop-shadow-lg">Gepakt! 🎉</div>
-                    <div class="text-3xl mt-2 animate-bounce" x-text="clothingItems[currentLevel - 2]?.name || ''"></div>
+                <div x-show="showCatchText" x-transition
+                     class="absolute top-1/4 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
+                    <div class="text-3xl font-bold text-green-500 drop-shadow-lg">Gepakt! 🎉</div>
+                    <div class="text-2xl mt-1" x-text="clothingItems[currentLevel - 2]?.name || ''"></div>
                 </div>
 
                 {{-- Miss feedback --}}
-                <div
-                    x-show="showMissText"
-                    x-transition
-                    class="absolute text-3xl"
-                    :style="`left: ${missX}px; top: ${missY}px;`"
-                >
-                    ❌
-                </div>
+                <div x-show="showMissText" x-transition class="absolute text-2xl"
+                     :style="`left: ${missX}px; top: ${missY}px;`">❌</div>
             </div>
         </div>
 
         {{-- Win Screen --}}
-        <div x-show="gameState === 'won'" x-cloak class="min-h-screen flex flex-col items-center justify-center p-6 bg-gradient-to-b from-pink-300 to-red-300 relative">
-            {{-- Floating hearts background --}}
+        <div x-show="gameState === 'won'" x-cloak
+             class="h-[100dvh] flex flex-col items-center justify-center p-3 bg-gradient-to-b from-pink-300 to-red-300 relative overflow-hidden">
             <div class="hearts">
-                <template x-for="i in 20" :key="i">
-                    <div class="heart" :style="`left: ${Math.random() * 100}%; animation-delay: ${Math.random() * 4}s;`">
-                        💕
-                    </div>
+                <template x-for="i in 15" :key="i">
+                    <div class="heart" :style="`left: ${Math.random() * 100}%; animation-delay: ${Math.random() * 4}s;`">💕</div>
                 </template>
             </div>
 
-            <div class="message-card bg-white/90 backdrop-blur rounded-3xl shadow-2xl p-8 max-w-md mx-auto text-center relative z-10">
+            <div class="message-card bg-white/90 backdrop-blur rounded-2xl shadow-xl p-4 max-w-sm w-full text-center relative z-10">
                 {{-- Dressed Viktor --}}
-                <div class="mb-6">
-                    <svg class="w-32 h-40 mx-auto" viewBox="0 0 100 130">
-                        <circle cx="50" cy="25" r="20" fill="#FFE4C4" stroke="#8B4513" stroke-width="2"/>
-                        <path d="M 32 12 Q 50 0 68 12" stroke="#8B4513" stroke-width="10" fill="none" stroke-linecap="round"/>
-                        <circle cx="42" cy="22" r="4" fill="#4A4A4A"/>
-                        <circle cx="58" cy="22" r="4" fill="#4A4A4A"/>
-                        <circle cx="43" cy="21" r="1.5" fill="white"/>
-                        <circle cx="59" cy="21" r="1.5" fill="white"/>
-                        <path d="M 42 32 Q 50 40 58 32" stroke="#4A4A4A" stroke-width="2" fill="none"/>
-                        <circle cx="35" cy="30" r="4" fill="#FFB6C1" opacity="0.6"/>
-                        <circle cx="65" cy="30" r="4" fill="#FFB6C1" opacity="0.6"/>
+                <svg class="w-16 h-20 mx-auto mb-2" viewBox="0 0 100 130">
+                    <circle cx="50" cy="25" r="20" fill="#FFE4C4" stroke="#8B4513" stroke-width="2"/>
+                    <path d="M 32 12 Q 50 0 68 12" stroke="#8B4513" stroke-width="10" fill="none" stroke-linecap="round"/>
+                    <circle cx="42" cy="22" r="4" fill="#4A4A4A"/>
+                    <circle cx="58" cy="22" r="4" fill="#4A4A4A"/>
+                    <circle cx="43" cy="21" r="1.5" fill="white"/>
+                    <circle cx="59" cy="21" r="1.5" fill="white"/>
+                    <path d="M 42 32 Q 50 40 58 32" stroke="#4A4A4A" stroke-width="2" fill="none"/>
+                    <circle cx="35" cy="30" r="4" fill="#FFB6C1" opacity="0.6"/>
+                    <circle cx="65" cy="30" r="4" fill="#FFB6C1" opacity="0.6"/>
+                    <rect x="36" y="43" width="28" height="28" rx="5" fill="#FF6347"/>
+                    <rect x="28" y="48" width="12" height="20" rx="4" fill="#FF6347"/>
+                    <rect x="60" y="48" width="12" height="20" rx="4" fill="#FF6347"/>
+                    <text x="50" y="62" text-anchor="middle" fill="white" font-size="10">❤️</text>
+                    <rect x="38" y="68" width="24" height="18" rx="3" fill="#4169E1"/>
+                    <rect x="40" y="82" width="9" height="18" rx="3" fill="#4169E1"/>
+                    <rect x="51" y="82" width="9" height="18" rx="3" fill="#4169E1"/>
+                    <rect x="39" y="97" width="11" height="8" rx="3" fill="#FFD700"/>
+                    <rect x="50" y="97" width="11" height="8" rx="3" fill="#FFD700"/>
+                    <ellipse cx="44" cy="108" rx="8" ry="5" fill="#2F4F4F"/>
+                    <ellipse cx="56" cy="108" rx="8" ry="5" fill="#2F4F4F"/>
+                </svg>
 
-                        {{-- Shirt --}}
-                        <rect x="36" y="43" width="28" height="28" rx="5" fill="#FF6347"/>
-                        <rect x="28" y="48" width="12" height="20" rx="4" fill="#FF6347"/>
-                        <rect x="60" y="48" width="12" height="20" rx="4" fill="#FF6347"/>
-                        <text x="50" y="62" text-anchor="middle" fill="white" font-size="10">❤️</text>
+                <h2 class="text-xl font-bold text-red-600 mb-1">Viktor is aangekleed! 🎉</h2>
+                <p class="text-sm text-gray-600 mb-2">Tijd: <span x-text="Math.floor(finalTime)"></span> seconden</p>
 
-                        {{-- Pants --}}
-                        <rect x="38" y="68" width="24" height="18" rx="3" fill="#4169E1"/>
-                        <rect x="40" y="82" width="9" height="18" rx="3" fill="#4169E1"/>
-                        <rect x="51" y="82" width="9" height="18" rx="3" fill="#4169E1"/>
-
-                        {{-- Socks --}}
-                        <rect x="39" y="97" width="11" height="8" rx="3" fill="#FFD700"/>
-                        <rect x="50" y="97" width="11" height="8" rx="3" fill="#FFD700"/>
-
-                        {{-- Shoes --}}
-                        <ellipse cx="44" cy="108" rx="8" ry="5" fill="#2F4F4F"/>
-                        <ellipse cx="56" cy="108" rx="8" ry="5" fill="#2F4F4F"/>
-                    </svg>
+                <div class="border-t border-pink-200 pt-2 mt-2">
+                    <p class="text-lg font-bold text-red-500 mb-1">💕 Fijne Valentijnsdag Jessica! 💕</p>
+                    <p class="text-xs text-gray-600 leading-relaxed">
+                        Door luiers, slapeloze nachten, en broekloze ochtenden...
+                        Ik zou deze chaos met niemand anders willen delen.
+                    </p>
+                    <p class="text-base font-bold text-red-500 mt-2">Ik hou van je! ❤️</p>
                 </div>
 
-                <h2 class="text-3xl font-bold text-red-600 mb-4">Viktor is aangekleed! 🎉</h2>
-
-                <div class="text-lg text-gray-700 space-y-4 mb-6">
-                    <p class="text-xl">Tijd: <span x-text="Math.floor(finalTime)"></span> seconden</p>
-
-                    <div class="border-t border-pink-200 pt-4 mt-4">
-                        <p class="text-2xl font-bold text-red-500 mb-3">💕 Fijne Valentijnsdag Jessica! 💕</p>
-                        <p class="text-gray-600 leading-relaxed">
-                            Door luiers, slapeloze nachten, en broekloze ochtenden...
-                        </p>
-                        <p class="text-gray-600 leading-relaxed mt-2">
-                            Ik zou deze chaos met niemand anders willen delen dan met jou.
-                        </p>
-                        <p class="text-xl font-bold text-red-500 mt-4">
-                            Ik hou van je! ❤️
-                        </p>
-                    </div>
-                </div>
-
-                <button
-                    @click="resetGame()"
-                    class="bg-red-500 hover:bg-red-600 text-white text-xl font-bold py-3 px-8 rounded-full shadow-lg transform hover:scale-105 transition-all"
-                >
+                <button @click="resetGame()"
+                    class="mt-3 bg-red-500 hover:bg-red-600 text-white text-lg font-bold py-2 px-6 rounded-full shadow-lg">
                     🔄 Nog een keer!
                 </button>
             </div>
@@ -463,26 +417,31 @@
                     { name: '👟 Schoenen', emoji: '👟' }
                 ],
 
-                getScale() {
-                    const width = window.innerWidth;
-                    if (width <= 400) return 0.6;
-                    if (width <= 500) return 0.7;
-                    return 1;
+                getViktorScale() {
+                    // Scale based on viewport height
+                    const vh = window.innerHeight;
+                    if (vh < 350) return 0.55;
+                    if (vh < 400) return 0.65;
+                    if (vh < 500) return 0.75;
+                    return 0.85;
                 },
 
                 getFloorHeight() {
-                    return 80 * this.getScale();
+                    const vh = window.innerHeight;
+                    if (vh < 350) return 40;
+                    if (vh < 400) return 50;
+                    if (vh < 500) return 60;
+                    return 70;
                 },
 
                 getViktorWidth() {
-                    return 80 * this.getScale();
+                    return 80 * this.getViktorScale();
                 },
 
                 init() {
-                    this.chairPosition = window.innerWidth * 0.3;
-                    // Update on resize
+                    this.chairPosition = window.innerWidth * 0.4;
                     window.addEventListener('resize', () => {
-                        this.chairPosition = window.innerWidth * 0.3;
+                        this.chairPosition = window.innerWidth * 0.4;
                     });
                 },
 
@@ -502,63 +461,49 @@
                 startViktorBehavior() {
                     const gameWidth = window.innerWidth;
                     const viktorWidth = this.getViktorWidth();
-                    // Speed ramps up quicker: 4, 7, 10, 13, 16
                     const speed = 1 + (this.currentLevel * 3);
 
-                    // Movement
                     this.moveInterval = setInterval(() => {
                         if (this.justCaught) return;
 
                         this.viktorX += this.viktorDirection * speed;
 
-                        // Bounce off walls (use scaled viktor width)
                         if (this.viktorX > gameWidth - viktorWidth - 20) {
                             this.viktorDirection = -1;
                         } else if (this.viktorX < 20) {
                             this.viktorDirection = 1;
                         }
 
-                        // Random direction changes (more erratic at higher levels)
                         if (Math.random() < 0.02 + (this.currentLevel * 0.01)) {
                             this.viktorDirection *= -1;
                         }
                     }, 30);
 
-                    // Crouching/jumping behavior - only from level 3+
                     if (this.currentLevel >= 3) {
-                        // Frequency increases with level: 1200ms at L3, 900ms at L4, 600ms at L5
                         const behaviorFrequency = Math.max(600, 1500 - (this.currentLevel * 300));
 
                         this.behaviorInterval = setInterval(() => {
                             if (this.justCaught) return;
 
-                            // If jumping and crouch triggered, slam down fast
                             if (this.isJumping) {
                                 this.isJumping = false;
                                 this.isCrouching = true;
                                 this.viktorY = 0;
-                                setTimeout(() => {
-                                    this.isCrouching = false;
-                                }, 400);
+                                setTimeout(() => { this.isCrouching = false; }, 400);
                                 return;
                             }
 
-                            // Check if near chair - higher chance to crouch
                             const nearChair = Math.abs(this.viktorX - this.chairPosition) < 80;
-                            // Chance increases with level
                             const baseChance = 0.15 + (this.currentLevel * 0.1);
                             const actionChance = nearChair ? baseChance + 0.2 : baseChance;
 
                             if (Math.random() < actionChance) {
-                                // 50% crouch, 50% jump
                                 if (Math.random() < 0.5) {
                                     this.isCrouching = true;
-                                    setTimeout(() => {
-                                        this.isCrouching = false;
-                                    }, 600 + Math.random() * 600);
+                                    setTimeout(() => { this.isCrouching = false; }, 600 + Math.random() * 600);
                                 } else {
                                     this.isJumping = true;
-                                    this.viktorY = 60;
+                                    this.viktorY = 50;
                                     setTimeout(() => {
                                         if (this.isJumping) {
                                             this.isJumping = false;
@@ -586,23 +531,18 @@
                     this.isJumping = false;
                     this.viktorY = 0;
 
-                    // First: increment level to show new clothing
                     if (this.currentLevel < 5) {
                         this.currentLevel++;
                     } else {
                         this.currentLevel++;
-                        setTimeout(() => {
-                            this.winGame();
-                        }, 1000);
+                        setTimeout(() => { this.winGame(); }, 1000);
                         return;
                     }
 
-                    // Then: pause to admire the new clothes, then continue
                     setTimeout(() => {
                         this.showCatchText = false;
                         this.justCaught = false;
                         this.isMoving = true;
-                        // Restart behavior with increased difficulty
                         this.stopViktorBehavior();
                         this.startViktorBehavior();
                     }, 1200);
@@ -612,10 +552,7 @@
                     this.missX = event.clientX - 20;
                     this.missY = event.clientY - 20;
                     this.showMissText = true;
-
-                    setTimeout(() => {
-                        this.showMissText = false;
-                    }, 300);
+                    setTimeout(() => { this.showMissText = false; }, 300);
                 },
 
                 winGame() {
@@ -626,18 +563,15 @@
                 },
 
                 resetGame() {
-                    // Stop all running intervals first
                     this.stopViktorBehavior();
                     clearInterval(this.timerInterval);
                     this.timerInterval = null;
 
-                    // Reset game state
                     this.gameState = 'start';
                     this.currentLevel = 1;
                     this.timer = 0;
                     this.finalTime = 0;
 
-                    // Reset Viktor state
                     this.viktorX = window.innerWidth / 2 - (this.getViktorWidth() / 2);
                     this.viktorY = 0;
                     this.viktorDirection = 1;
@@ -646,7 +580,6 @@
                     this.isMoving = true;
                     this.justCaught = false;
 
-                    // Reset UI state
                     this.showCatchText = false;
                     this.showMissText = false;
                 }
