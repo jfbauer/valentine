@@ -1,0 +1,105 @@
+# =============================================================================
+# LOCAL DEVELOPMENT COMPOSE
+# slim-docker-laravel-setup v0.1.0
+# =============================================================================
+
+services:
+  valentine-php:
+    build:
+      context: .
+      dockerfile: docker-laravel/local/php/Dockerfile
+    container_name: valentine-php
+    restart: unless-stopped
+    working_dir: /var/www
+    ports:
+      - "${VITE_PORT:-5173}:5173"
+    volumes:
+      - ./www:/var/www
+      - .env:/var/www/.env
+      - ./docker-laravel/shared/php/local.ini:/usr/local/etc/php/conf.d/local.ini:ro
+      - ./docker-laravel/local/php/entrypoint.sh:/entrypoint.sh:ro
+      - ./docker-laravel/shared/supervisor/supervisord.conf:/etc/supervisor/supervisord.conf:ro
+      - ./docker-laravel/local/php/supervisor:/etc/supervisor/conf.d:ro
+    networks:
+      - valentine
+    depends_on:
+      valentine-postgres:
+        condition: service_healthy
+      valentine-redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "php-fpm -t || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  valentine-nginx:
+    image: nginx:1.27-alpine
+    container_name: valentine-nginx
+    restart: unless-stopped
+    ports:
+      - "${NGINX_PORT:-80}:80"
+    volumes:
+      - ./www:/var/www:ro
+      - ./docker-laravel/shared/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - valentine
+    depends_on:
+      valentine-php:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:80/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  valentine-postgres:
+    image: postgres:17-alpine
+    container_name: valentine-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: valentine
+      POSTGRES_USER: valentine
+      POSTGRES_PASSWORD: "${DB_PASSWORD:-laravel}"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "${DB_EXTERNAL_PORT:-5433}:5432"
+    networks:
+      - valentine
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U valentine -d valentine"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  valentine-redis:
+    image: redis:7-alpine
+    container_name: valentine-redis
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    networks:
+      - valentine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+networks:
+  valentine:
+    name: valentine-network
+    driver: bridge
+
+volumes:
+  postgres-data:
+    name: valentine-postgres
+    driver: local
+  redis-data:
+    name: valentine-redis
+    driver: local

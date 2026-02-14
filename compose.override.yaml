@@ -1,0 +1,47 @@
+services:
+  valentine-php:
+    build:
+      context: .
+      dockerfile: Dockerfile.pocketdev
+    volumes: !override
+      - type: volume
+        source: pocket-dev-workspace
+        target: /var/www
+        volume:
+          subpath: default/valentine/www
+      - type: volume
+        source: pocket-dev-workspace
+        target: /pocketdev-stage-d572ff
+        volume:
+          subpath: default/valentine
+      - type: volume
+        source: pocket-dev-workspace
+        target: /etc/supervisor/conf.d
+        volume:
+          subpath: default/valentine/docker-laravel/local/php/supervisor
+    user: root
+    entrypoint: ["/bin/sh","-c","cp '/pocketdev-stage-d572ff/.env' '/var/www/.env' && exec /entrypoint.sh"]
+  valentine-nginx:
+    volumes: !override
+      - type: volume
+        source: pocket-dev-workspace
+        target: /var/www
+        volume:
+          subpath: default/valentine/www
+      - type: volume
+        source: pocket-dev-workspace
+        target: /pocketdev-stage-023144
+        volume:
+          subpath: default/valentine/docker-laravel/shared/nginx
+    user: root
+    entrypoint: ["/bin/sh","-c","cp '/pocketdev-stage-023144/default.conf' '/etc/nginx/conf.d/default.conf' && exec nginx -g 'daemon off;'"]
+  valentine-postgres:
+    volumes: !override
+      - postgres-data:/var/lib/postgresql/data
+  valentine-redis:
+    volumes: !override
+      - redis-data:/data
+
+volumes:
+  pocket-dev-workspace:
+    external: true
